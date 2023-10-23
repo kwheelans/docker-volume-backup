@@ -41,3 +41,5 @@ fi
 # Setup crontab
 
 crontab -l | { cat; echo "${CRON} bash /script/backup.sh"; } | crontab -
+
+crond
