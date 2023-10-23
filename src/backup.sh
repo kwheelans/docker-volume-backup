@@ -23,8 +23,12 @@ EXTENSION=$1
 TYPE=$2
 cd /data || exit 1
 
+RUNTIME="$(date +%Y-%m-%d_%H-%M-%S)"
+
 if [[ "$TYPE" == 'single' ]]; then
+  echo "Running backup_single at ${RUNTIME}"
   backup_single "$EXTENSION"
 else
+  echo "Running backup_muli at ${RUNTIME}"
   backup_multi "$EXTENSION"
 fi

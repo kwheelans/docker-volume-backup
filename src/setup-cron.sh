@@ -39,7 +39,7 @@ elif [[ ! -d "/data" ]]; then
 fi
 
 # Setup crontab
-
+echo "Setting crontab with CRON as ${CRON}"
 crontab -l | { cat; echo "${CRON} bash /script/backup.sh"; } | crontab -
 
-crond
+crond -f
