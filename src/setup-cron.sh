@@ -7,8 +7,8 @@ case "${COMPRESS,,}" in
   ;;
 
   *)
-   COMPRESS='gz'
-   echo "TYPE value no recognized, setting to ${COMPRESS,,}"
+   export COMPRESS='gz'
+   echo "TYPE value no recognized, setting to ${COMPRESS}"
    ;;
 esac
 
@@ -20,7 +20,7 @@ case "${TYPE,,}" in
 
 *)
   TYPE='multi'
-  echo "TYPE value not recognized, setting to ${TYPE,,}"
+  echo "TYPE value not recognized, setting to ${TYPE}"
   ;;
 esac
 
@@ -40,6 +40,6 @@ fi
 
 # Setup crontab
 echo "Setting crontab with CRON as ${CRON}"
-crontab -l | { cat; echo "${CRON} bash /script/backup.sh ${COMPRESS}"; } | crontab -
+crontab -l | { cat; echo "${CRON} bash /script/backup.sh"; } | crontab -
 
 crond -f

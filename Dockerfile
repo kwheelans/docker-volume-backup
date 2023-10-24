@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 RUN apk update && apk upgrade
-RUN apk add bash dcron
+RUN apk add bash dcron xz
 
 RUN mkdir /script
 ADD src/setup-cron.sh /script/
