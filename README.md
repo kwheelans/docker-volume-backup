@@ -1,5 +1,5 @@
 # docker-volume-backup
-A simple docker container to run cron and backup the folders mounted under `/data` to the volume mounted at `/backup`
+A simple docker container to run cron and backup the folders mounted under `/data` to the volume mounted at `/backup`.
 
 ## Environment
 
