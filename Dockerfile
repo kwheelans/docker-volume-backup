@@ -12,6 +12,7 @@ ENV TYPE="multi"
 ENV CRON="0 0 * * *"
 ENV TZ="UTC"
 ENV PREFIX="docker-backup-volume"
+ENV PERMISSION="644"
 
 WORKDIR /script
 ENTRYPOINT ["/bin/bash", "setup-cron.sh"]

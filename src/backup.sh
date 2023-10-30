@@ -7,6 +7,7 @@ backup_multi() {
     local output="/backup/${PREFIX}_${data}_${timestamp}.tar.${ext}"
 
     tar -caf "$output" "$data"
+    chmod "$PERMISSION" "$output"
   done
 }
 
@@ -17,6 +18,7 @@ backup_single() {
   local data="*"
 
   tar -caf "$output" "$data"
+  chmod "$PERMISSION" "$output"
 }
 
 TYPE=$2

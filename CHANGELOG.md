@@ -1,3 +1,7 @@
+# v0.3.0
+## Features
+- Set archive file permissions with `PERMISSION`
+
 # v0.2.0
 ## Features
 - Set timezone through `TZ` environment variable
