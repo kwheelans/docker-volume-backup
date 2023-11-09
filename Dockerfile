@@ -1,18 +1,26 @@
-FROM alpine:latest
+FROM rust:alpine AS builder
+RUN apk --no-cache add build-base
+WORKDIR /docker-volume-backup
 
-RUN apk update && apk upgrade
-RUN apk add bash dcron xz tzdata
+COPY ./ .
 
-RUN mkdir /script
-ADD src/setup-cron.sh /script/
-ADD src/backup.sh /script/
+RUN cargo build --release
 
-ENV COMPRESS="gz"
-ENV TYPE="multi"
-ENV CRON="0 0 * * *"
-ENV TZ="UTC"
-ENV PREFIX="docker-backup-volume"
-ENV PERMISSION="644"
+# Final image
+FROM alpine
 
-WORKDIR /script
+RUN apk add --no-cache bash dcron xz tzdata && mkdir /docker-volume-backup
+WORKDIR /docker-volume-backup
+
+ENV COMPRESS="gz" \
+ STRATEGY="multiple" \
+ CRON="0 0 * * *" \
+ TZ="UTC" \
+ PREFIX="docker-volume-backup" \
+ PERMISSION="644"
+
+ADD src/shell/*.sh /docker-volume-backup/
+
+COPY --from=builder /docker-volume-backup/target/release/docker-volume-backup /docker-volume-backup
+
 ENTRYPOINT ["/bin/bash", "setup-cron.sh"]

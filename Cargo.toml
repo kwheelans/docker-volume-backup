@@ -1,0 +1,25 @@
+[package]
+name = "docker-volume-backup"
+version = "0.1.0"
+authors = ["Kevin Wheelans <kevin.wheelans@proton.me>"]
+edition = "2021"
+rust-version = "1.70"
+description = ""
+homepage = "https://github.com/kwheelans/docker-volume-backup"
+license = "MIT"
+keywords = []
+readme = "README.md"
+repository = "https://github.com/kwheelans/docker-volume-backup"
+
+[dependencies]
+log = "0.4"
+flate2 = "1"
+simple_logger = "4"
+tar = "0.4"
+time = { version = "0.3", features = ["local-offset", "macros", "formatting"] }
+thiserror = "1"
+xz2 = "0.1"
+
+[profile.release]
+lto = true
+codegen-units = 1

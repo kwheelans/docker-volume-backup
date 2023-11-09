@@ -1,2 +1,8 @@
 #IDE
 .idea
+
+# Testing
+test_data
+
+#rust
+target
