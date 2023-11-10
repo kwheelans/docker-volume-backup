@@ -3,10 +3,10 @@ use crate::error::Error;
 use crate::error::Error::NoVolumeMounted;
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use log::{debug, error, info, LevelFilter, warn};
+use log::{debug, error, info, LevelFilter};
 use std::collections::HashSet;
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -20,7 +20,8 @@ mod configuration;
 mod error;
 
 const LOG_TARGET: &str = "docker-volume-backup";
-const TIMESTAMP_FORMAT:&[time::format_description::FormatItem<'_>] = format_description!("[year]-[month]-[day]_[hour]-[minute]-[second]");
+const TIMESTAMP_FORMAT: &[time::format_description::FormatItem<'_>] =
+    format_description!("[year]-[month]-[day]_[hour]-[minute]-[second]");
 
 const BACKUP_DIR: &str = "/backup";
 const BACKUP_DIR_ENV: &str = "BACKUP_DIR";
@@ -105,14 +106,19 @@ fn run_backup() -> Result<(), Error> {
         .filter(|d| d.is_dir())
         .collect();
 
-
     for path in backup_paths.as_slice() {
         debug!(target: LOG_TARGET, "{}: {}", path.file_name().unwrap_or(OsStr::new("")).to_string_lossy() , path.to_string_lossy());
     }
 
+    let backup_paths: Vec<(_, _)> = backup_paths
+        .iter()
+        .filter(|p| p.as_path().file_name().is_some())
+        .map(|f| (f.file_name().unwrap().to_os_string(), f.to_path_buf()))
+        .collect();
+
     match config.backup_type {
-        BackupStrategy::Single => single_archive(backup_paths.as_slice(), &config)?,
-        BackupStrategy::Multiple => multiple_archive(backup_paths.as_slice(), &config)?,
+        BackupStrategy::Single => single_archive(backup_paths, &config)?,
+        BackupStrategy::Multiple => multiple_archive(backup_paths, &config)?,
     }
 
     info!(target: LOG_TARGET, "Backup Finished");
@@ -124,41 +130,57 @@ fn timestamp() -> Result<String, Error> {
     Ok(timestamp.format(TIMESTAMP_FORMAT)?)
 }
 
-fn single_archive(directories: &[PathBuf], config: &Configuration) -> Result<(), Error> {
-    todo!("implement single archive")
+fn single_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuration) -> Result<(), Error> {
+    let timestamp = timestamp()?;
+    let archive_name = format!(
+        "{}_{}.tar.{}",
+        config.prefix,
+        timestamp,
+        config.compression.extension()
+    );
+    let compressor = select_encoder(
+        config.backup_dir.as_path().join(archive_name.as_str()),
+        &config.compression,
+    )?;
+    let mut tar = tar::Builder::new(compressor);
+
+    for (name, path) in directories {
+        tar.append_dir_all(name, path)?;
+    }
+
+    Ok(())
 }
 
-fn multiple_archive(directories: &[PathBuf], config: &Configuration) -> Result<(), Error> {
+fn multiple_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuration) -> Result<(), Error> {
     let timestamp = timestamp()?;
-
-    for directory in directories {
-        let dir_name = match directory.as_path().file_name() {
-            None => {
-                warn!(target: LOG_TARGET, "Skipping. Unable to get filename for path: {}", directory.as_path().to_string_lossy());
-                continue
-            },
-            Some(filename) => filename.to_os_string(),
-        };
-
-        let archive_name = format!("{}_{}_{}.tar.{}", config.prefix, dir_name.to_string_lossy(), timestamp, config.compression.extension());
-        let compressor = select_encoder(config.backup_dir.as_path().join(archive_name.as_str()), &config.compression)?;
+    for (name, path) in directories {
+        let archive_name = format!(
+            "{}_{}_{}.tar.{}",
+            config.prefix,
+            name.to_string_lossy(),
+            timestamp,
+            config.compression.extension()
+        );
+        let compressor = select_encoder(
+            config.backup_dir.as_path().join(archive_name.as_str()),
+            &config.compression,
+        )?;
         let mut tar = tar::Builder::new(compressor);
-        tar.append_dir_all(dir_name, directory.as_path())?;
+        tar.append_dir_all(name, path)?;
         tar.finish()?;
     }
 
     Ok(())
 }
 
-fn select_encoder<P: AsRef<Path>>(path: P, compress: &BackupCompression) -> Result<Box<dyn Write>, Error> {
+fn select_encoder<P: AsRef<Path>>(
+    path: P,
+    compress: &BackupCompression,
+) -> Result<Box<dyn Write>, Error> {
     let file = File::create(path.as_ref())?;
     let encoder: Box<dyn Write> = match compress {
-        BackupCompression::Gzip => {
-            Box::new(GzEncoder::new(file, Compression::default()))
-        }
-        BackupCompression::Xz => {
-            Box::new(XzEncoder::new(file, 6))
-        }
+        BackupCompression::Gzip => Box::new(GzEncoder::new(file, Compression::default())),
+        BackupCompression::Xz => Box::new(XzEncoder::new(file, 6)),
     };
     Ok(encoder)
 }
