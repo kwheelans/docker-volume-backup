@@ -1,6 +1,6 @@
 [package]
 name = "docker-volume-backup"
-version = "0.1.0"
+version = "0.4.0"
 authors = ["Kevin Wheelans <kevin.wheelans@proton.me>"]
 edition = "2021"
 rust-version = "1.70"

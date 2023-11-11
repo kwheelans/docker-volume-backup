@@ -17,4 +17,4 @@ fi
 echo "Setting crontab with CRON as ${CRON}"
 crontab -l | { cat; echo "${CRON} /docker-volume-backup/docker-volume-backup"; } | crontab -
 
-#crond -f
+crond -f
