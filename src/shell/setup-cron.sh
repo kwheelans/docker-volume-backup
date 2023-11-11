@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 # Check cron variable
-if [[ -z "$CRON" ]]; then
+if [ -z "$CRON" ]; then
   CRON="0 0 * * *"
 fi
 
-/docker-volume-backup/docker-volume-backup --validate
+docker-volume-backup --validate
 RTN_CODE=$?
 
 if [ ! $RTN_CODE = 0 ]; then
@@ -15,6 +15,6 @@ fi
 
 # Setup crontab
 echo "Setting crontab with CRON as ${CRON}"
-crontab -l | { cat; echo "${CRON} /docker-volume-backup/docker-volume-backup"; } | crontab -
+crontab -l | { cat; echo "${CRON} docker-volume-backup > /proc/1/fd/1 2>/proc/1/fd/2"; } | crontab -
 
 crond -f
