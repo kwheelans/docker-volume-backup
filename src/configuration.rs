@@ -1,5 +1,8 @@
-use crate::error::Error::{InvalidBackupType, InvalidCompressionType};
+use crate::error::Error;
+use crate::error::Error::{InvalidBackupType, InvalidCompressionType, InvalidPermission};
 use std::fmt::{Display, Formatter};
+use std::fs::Permissions;
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -9,6 +12,7 @@ pub struct Configuration {
     pub backup_type: BackupStrategy,
     pub compression: BackupCompression,
     pub prefix: String,
+    pub permission: Permissions,
 }
 
 pub enum BackupStrategy {
@@ -21,16 +25,10 @@ pub enum BackupCompression {
     Xz,
 }
 
-pub enum Permission {
-    G6O0,
-    G6O4,
-    G6O6,
-    G4O0,
-    G4O4,
-    G4O6,
-    G0O0,
-    G0O4,
-    G0O6,
+pub enum BackupPermission {
+    Read,
+    Write,
+    None,
 }
 
 impl Display for BackupStrategy {
@@ -81,5 +79,32 @@ impl BackupCompression {
             BackupCompression::Gzip => "gz".to_string(),
             BackupCompression::Xz => "xz".to_string(),
         }
+    }
+}
+
+impl FromStr for BackupPermission {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "read" | "r" => Ok(Self::Read),
+            "write" | "w" => Ok(Self::Write),
+            "none" | "n" | "" => Ok(Self::None),
+            _ => Err(InvalidPermission),
+        }
+    }
+}
+
+pub fn get_permission(group: BackupPermission, other: BackupPermission) -> Permissions {
+    match (group, other) {
+        (BackupPermission::Write, BackupPermission::None) => Permissions::from_mode(0o660),
+        (BackupPermission::Write, BackupPermission::Read) => Permissions::from_mode(0o664),
+        (BackupPermission::Write, BackupPermission::Write) => Permissions::from_mode(0o666),
+        (BackupPermission::Read, BackupPermission::None) => Permissions::from_mode(0o640),
+        (BackupPermission::Read, BackupPermission::Read) => Permissions::from_mode(0o644),
+        (BackupPermission::Read, BackupPermission::Write) => Permissions::from_mode(0o646),
+        (BackupPermission::None, BackupPermission::None) => Permissions::from_mode(0o600),
+        (BackupPermission::None, BackupPermission::Read) => Permissions::from_mode(0o604),
+        (BackupPermission::None, BackupPermission::Write) => Permissions::from_mode(0o606),
     }
 }

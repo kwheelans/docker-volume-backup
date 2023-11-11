@@ -3,12 +3,16 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     /// Error return when conversion to [`BackupStrategy`] fails
-    #[error("Provided value cannot be converted BackupStrategy enum")]
+    #[error("Provided value cannot be converted to BackupStrategy enum")]
     InvalidBackupType,
 
     /// Error return when conversion to [`BackupCompression`] fails
-    #[error("Provided value cannot be converted BackupCompression enum")]
+    #[error("Provided value cannot be converted to BackupCompression enum")]
     InvalidCompressionType,
+
+    /// Error return when conversion to [`Permission`] fails
+    #[error("Provided value cannot be converted to Permission enum")]
+    InvalidPermission,
 
     /// Error returned when a required directory does not exit
     #[error("No volume mounted at: {0}")]

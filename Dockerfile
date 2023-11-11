@@ -17,7 +17,8 @@ ENV COMPRESS="gz" \
  CRON="0 0 * * *" \
  TZ="UTC" \
  PREFIX="docker-volume-backup" \
- PERMISSION="644"
+ GROUP_PERMISSION="read" \
+ OTHER_PERMISSION="read"
 
 ADD src/shell/*.sh /docker-volume-backup/
 

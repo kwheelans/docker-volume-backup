@@ -1,4 +1,6 @@
-use crate::configuration::{BackupCompression, BackupStrategy, Configuration};
+use crate::configuration::{
+    get_permission, BackupCompression, BackupPermission, BackupStrategy, Configuration,
+};
 use crate::error::Error;
 use crate::error::Error::NoVolumeMounted;
 use flate2::write::GzEncoder;
@@ -31,6 +33,8 @@ const LOG_LEVEL: &str = "LOG_LEVEL";
 const STRATEGY_ENV: &str = "STRATEGY";
 const PREFIX_ENV: &str = "PREFIX";
 const COMPRESS_ENV: &str = "COMPRESS";
+const GROUP_PERMISSION: &str = "GROUP_PERMISSION";
+const OTHER_PERMISSION: &str = "OTHER_PERMISSION";
 
 fn main() -> ExitCode {
     simple_logger::SimpleLogger::new()
@@ -73,6 +77,13 @@ fn validate_config() -> Result<Configuration, Error> {
     let compression =
         BackupCompression::from_str(env::var(COMPRESS_ENV).unwrap_or_default().as_str())?;
     let prefix = env::var(PREFIX_ENV).unwrap_or(LOG_TARGET.to_string());
+    let permission = {
+        let group_permission =
+            BackupPermission::from_str(env::var(GROUP_PERMISSION).unwrap_or_default().as_str())?;
+        let other_permission =
+            BackupPermission::from_str(env::var(OTHER_PERMISSION).unwrap_or_default().as_str())?;
+        get_permission(group_permission, other_permission)
+    };
 
     if !data_dir.as_path().is_dir() {
         return Err(NoVolumeMounted(data_dir.to_string_lossy().into()));
@@ -86,6 +97,7 @@ fn validate_config() -> Result<Configuration, Error> {
         backup_type,
         compression,
         prefix,
+        permission,
     };
 
     Ok(valid_env)
@@ -130,7 +142,10 @@ fn timestamp() -> Result<String, Error> {
     Ok(timestamp.format(TIMESTAMP_FORMAT)?)
 }
 
-fn single_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuration) -> Result<(), Error> {
+fn single_archive(
+    directories: Vec<(OsString, PathBuf)>,
+    config: &Configuration,
+) -> Result<(), Error> {
     let timestamp = timestamp()?;
     let archive_name = format!(
         "{}_{}.tar.{}",
@@ -138,20 +153,21 @@ fn single_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuration)
         timestamp,
         config.compression.extension()
     );
-    let compressor = select_encoder(
-        config.backup_dir.as_path().join(archive_name.as_str()),
-        &config.compression,
-    )?;
+    let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
+    let compressor = select_encoder(archive_path.as_path(), &config.compression)?;
     let mut tar = tar::Builder::new(compressor);
 
     for (name, path) in directories {
         tar.append_dir_all(name, path)?;
     }
-
+    std::fs::set_permissions(archive_path.as_path(), config.permission.clone())?;
     Ok(())
 }
 
-fn multiple_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuration) -> Result<(), Error> {
+fn multiple_archive(
+    directories: Vec<(OsString, PathBuf)>,
+    config: &Configuration,
+) -> Result<(), Error> {
     let timestamp = timestamp()?;
     for (name, path) in directories {
         let archive_name = format!(
@@ -161,13 +177,12 @@ fn multiple_archive(directories: Vec<(OsString, PathBuf)>, config: &Configuratio
             timestamp,
             config.compression.extension()
         );
-        let compressor = select_encoder(
-            config.backup_dir.as_path().join(archive_name.as_str()),
-            &config.compression,
-        )?;
+        let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
+        let compressor = select_encoder(archive_path.as_path(), &config.compression)?;
         let mut tar = tar::Builder::new(compressor);
         tar.append_dir_all(name, path)?;
         tar.finish()?;
+        std::fs::set_permissions(archive_path.as_path(), config.permission.clone())?;
     }
 
     Ok(())
