@@ -1,3 +1,12 @@
+# v0.4.0
+## Breaking Changes
+- BZip2 not supported.
+- LZMA extension not supported use XZ.
+
+## Feature
+- migrate to rust instead of a shell script
+
+
 # v0.3.0
 ## Features
 - Set archive file permissions with `PERMISSION`
