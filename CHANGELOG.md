@@ -1,3 +1,9 @@
+# v0.4.1
+## Changes
+- Remove unnecessary colour feature from logging
+- Use local timestamps for logging
+- Better handling for logger initialization failure
+
 # v0.4.0
 ## Breaking Changes
 - BZip2 not supported.

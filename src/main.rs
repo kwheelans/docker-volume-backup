@@ -37,13 +37,19 @@ const GROUP_PERMISSION: &str = "GROUP_PERMISSION";
 const OTHER_PERMISSION: &str = "OTHER_PERMISSION";
 
 fn main() -> ExitCode {
-    simple_logger::SimpleLogger::new()
+    if let Err(error) = simple_logger::SimpleLogger::new()
         .with_level(LevelFilter::Off)
         .env()
         .with_module_level(LOG_TARGET, set_logging_level())
-        .with_colors(true)
+        .with_local_timestamps()
         .init()
-        .unwrap();
+    {
+        println!(
+            "ERROR [{}] Unable to initialize logger: {}",
+            LOG_TARGET, error
+        );
+        return ExitCode::FAILURE;
+    }
 
     if let Err(error) = run() {
         error!(target: LOG_TARGET, "{}", error);

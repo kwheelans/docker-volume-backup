@@ -1,10 +1,10 @@
 [package]
 name = "docker-volume-backup"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Kevin Wheelans <kevin.wheelans@proton.me>"]
 edition = "2021"
 rust-version = "1.70"
-description = ""
+description = "Simple volume backup utility for Docker cotnainers"
 homepage = "https://github.com/kwheelans/docker-volume-backup"
 license = "MIT"
 keywords = []
@@ -14,7 +14,7 @@ repository = "https://github.com/kwheelans/docker-volume-backup"
 [dependencies]
 log = "0.4"
 flate2 = "1"
-simple_logger = "4"
+simple_logger = { version = "4", default-features = false, features = ["timestamps"]}
 tar = "0.4"
 time = { version = "0.3", features = ["local-offset", "macros", "formatting"] }
 thiserror = "1"
