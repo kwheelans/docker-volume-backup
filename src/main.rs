@@ -1,8 +1,7 @@
 use crate::configuration::{
-    get_permission, BackupCompression, BackupPermission, BackupStrategy, Configuration,
+    validate_config, ArchiveCompression, ArchiveStrategy, Configuration, LOG_TARGET,
 };
 use crate::error::Error;
-use crate::error::Error::NoVolumeMounted;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use log::{debug, error, info, LevelFilter};
@@ -21,20 +20,22 @@ use xz2::write::XzEncoder;
 mod configuration;
 mod error;
 
-const LOG_TARGET: &str = "salvage";
 const TIMESTAMP_FORMAT: &[time::format_description::FormatItem<'_>] =
     format_description!("[year]-[month]-[day]_[hour]-[minute]-[second]");
-
+// Default Paths
 const BACKUP_DIR: &str = "/backup";
-const BACKUP_DIR_ENV: &str = "BACKUP_DIR";
 const DATA_DIR: &str = "/data";
+
+// Environment Variable Names
+const BACKUP_DIR_ENV: &str = "BACKUP_DIR";
 const DATA_DIR_ENV: &str = "DATA_DIR";
-const LOG_LEVEL: &str = "LOG_LEVEL";
-const STRATEGY_ENV: &str = "STRATEGY";
-const PREFIX_ENV: &str = "PREFIX";
-const COMPRESS_ENV: &str = "COMPRESS";
-const GROUP_PERMISSION: &str = "GROUP_PERMISSION";
-const OTHER_PERMISSION: &str = "OTHER_PERMISSION";
+const LOG_LEVEL: &str = "SALVAGE_LOG_LEVEL";
+const STRATEGY_ENV: &str = "SALVAGE_ARCHIVE_STRATEGY";
+const PREFIX_ENV: &str = "SALVAGE_ARCHIVE_PREFIX";
+const COMPRESS_ENV: &str = "SALVAGE_ARCHIVE_COMPRESSION";
+const GROUP_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_GROUP_PERMISSION";
+const OTHER_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_OTHER_PERMISSION";
+const SALVAGE_STOP_CONTAINERS_ENV: &str = "SALVAGE_STOP_CONTAINERS";
 
 fn main() -> ExitCode {
     if let Err(error) = simple_logger::SimpleLogger::new()
@@ -63,50 +64,20 @@ fn run() -> Result<(), Error> {
     let args: HashSet<String> = env::args().collect();
     if args.contains("-v") || args.contains("--validate") {
         let config = validate_config()?;
+        info!(target: LOG_TARGET, "Configuration validated successfully.");
         info!(target: LOG_TARGET, "Data Directory: {}", config.data_dir.to_string_lossy());
         info!(target: LOG_TARGET, "Backup Directory: {}", config.backup_dir.to_string_lossy());
-        info!(target: LOG_TARGET, "Backup Prefix: {}", config.prefix.as_str());
-        info!(target: LOG_TARGET, "Compression Type: {:?}", config.compression.to_string());
-        info!(target: LOG_TARGET, "Archive Strategy: {:?}", config.backup_type.to_string());
+        info!(target: LOG_TARGET, "Archive Compression: {}", config.archive_compression.to_string());
+        info!(target: LOG_TARGET, "Archive Strategy: {}", config.archive_strategy.to_string());
+        info!(target: LOG_TARGET, "Archive Prefix: {}", config.archive_prefix.as_str());
+        info!(target: LOG_TARGET, "Archive Compression: {}", config.group_permission.to_string());
+        info!(target: LOG_TARGET, "Archive Compression: {}", config.other_permission.to_string());
+        info!(target: LOG_TARGET, "Container Management Enabled: {}", config.stop_containers);
     } else {
         run_backup()?;
     }
 
     Ok(())
-}
-
-fn validate_config() -> Result<Configuration, Error> {
-    let data_dir = PathBuf::from(env::var(DATA_DIR_ENV).unwrap_or(DATA_DIR.into()));
-    let backup_dir = PathBuf::from(env::var(BACKUP_DIR_ENV).unwrap_or(BACKUP_DIR.into()));
-    let backup_type =
-        BackupStrategy::from_str(env::var(STRATEGY_ENV).unwrap_or_default().as_str())?;
-    let compression =
-        BackupCompression::from_str(env::var(COMPRESS_ENV).unwrap_or_default().as_str())?;
-    let prefix = env::var(PREFIX_ENV).unwrap_or(LOG_TARGET.to_string());
-    let permission = {
-        let group_permission =
-            BackupPermission::from_str(env::var(GROUP_PERMISSION).unwrap_or_default().as_str())?;
-        let other_permission =
-            BackupPermission::from_str(env::var(OTHER_PERMISSION).unwrap_or_default().as_str())?;
-        get_permission(group_permission, other_permission)
-    };
-
-    if !data_dir.as_path().is_dir() {
-        return Err(NoVolumeMounted(data_dir.to_string_lossy().into()));
-    } else if !backup_dir.as_path().is_dir() {
-        return Err(NoVolumeMounted(backup_dir.to_string_lossy().into()));
-    }
-
-    let valid_env = Configuration {
-        data_dir,
-        backup_dir,
-        backup_type,
-        compression,
-        prefix,
-        permission,
-    };
-
-    Ok(valid_env)
 }
 
 fn set_logging_level() -> LevelFilter {
@@ -134,9 +105,9 @@ fn run_backup() -> Result<(), Error> {
         .map(|f| (f.file_name().unwrap().to_os_string(), f.to_path_buf()))
         .collect();
 
-    match config.backup_type {
-        BackupStrategy::Single => single_archive(backup_paths, &config)?,
-        BackupStrategy::Multiple => multiple_archive(backup_paths, &config)?,
+    match config.archive_strategy {
+        ArchiveStrategy::Single => single_archive(backup_paths, &config)?,
+        ArchiveStrategy::Multiple => multiple_archive(backup_paths, &config)?,
     }
 
     info!(target: LOG_TARGET, "Backup Finished");
@@ -155,18 +126,18 @@ fn single_archive(
     let timestamp = timestamp()?;
     let archive_name = format!(
         "{}_{}.tar.{}",
-        config.prefix,
+        config.archive_prefix,
         timestamp,
-        config.compression.extension()
+        config.archive_compression.extension()
     );
     let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
-    let compressor = select_encoder(archive_path.as_path(), &config.compression)?;
+    let compressor = select_encoder(archive_path.as_path(), &config.archive_compression)?;
     let mut tar = tar::Builder::new(compressor);
 
     for (name, path) in directories {
         tar.append_dir_all(name, path)?;
     }
-    std::fs::set_permissions(archive_path.as_path(), config.permission.clone())?;
+    std::fs::set_permissions(archive_path.as_path(), config.archive_permission())?;
     Ok(())
 }
 
@@ -178,17 +149,17 @@ fn multiple_archive(
     for (name, path) in directories {
         let archive_name = format!(
             "{}_{}_{}.tar.{}",
-            config.prefix,
+            config.archive_prefix,
             name.to_string_lossy(),
             timestamp,
-            config.compression.extension()
+            config.archive_compression.extension()
         );
         let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
-        let compressor = select_encoder(archive_path.as_path(), &config.compression)?;
+        let compressor = select_encoder(archive_path.as_path(), &config.archive_compression)?;
         let mut tar = tar::Builder::new(compressor);
         tar.append_dir_all(name, path)?;
         tar.finish()?;
-        std::fs::set_permissions(archive_path.as_path(), config.permission.clone())?;
+        std::fs::set_permissions(archive_path.as_path(), config.archive_permission())?;
     }
 
     Ok(())
@@ -196,12 +167,12 @@ fn multiple_archive(
 
 fn select_encoder<P: AsRef<Path>>(
     path: P,
-    compress: &BackupCompression,
+    compress: &ArchiveCompression,
 ) -> Result<Box<dyn Write>, Error> {
     let file = File::create(path.as_ref())?;
     let encoder: Box<dyn Write> = match compress {
-        BackupCompression::Gzip => Box::new(GzEncoder::new(file, Compression::default())),
-        BackupCompression::Xz => Box::new(XzEncoder::new(file, 6)),
+        ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, Compression::default())),
+        ArchiveCompression::Xz => Box::new(XzEncoder::new(file, 6)),
     };
     Ok(encoder)
 }

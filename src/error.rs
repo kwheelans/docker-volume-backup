@@ -19,6 +19,10 @@ pub enum Error {
     NoVolumeMounted(String),
 
     // ### Converting from other error types ###
+    /// PassPass-thru `bollard::errors::Error`
+    #[error("bollard::errors::Error: {0}")]
+    DockerApi(#[from] bollard::errors::Error),
+
     /// Pass-thru [`std::io::Error`].
     #[error("std::io Error: {0}")]
     IO(#[from] std::io::Error),
