@@ -21,7 +21,7 @@ use xz2::write::XzEncoder;
 mod configuration;
 mod error;
 
-const LOG_TARGET: &str = "docker-volume-backup";
+const LOG_TARGET: &str = "salvage";
 const TIMESTAMP_FORMAT: &[time::format_description::FormatItem<'_>] =
     format_description!("[year]-[month]-[day]_[hour]-[minute]-[second]");
 

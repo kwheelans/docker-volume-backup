@@ -1,3 +1,8 @@
+# v0.5.0
+## changes
+- update package name
+
+
 # v0.4.1
 ## Changes
 - Remove unnecessary colour feature from logging
