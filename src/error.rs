@@ -18,6 +18,10 @@ pub enum Error {
     #[error("No volume mounted at: {0}")]
     NoVolumeMounted(String),
 
+    /// Error returned when no instance of a running salvage container can be found
+    #[error("No running salvage container was found")]
+    NoSalvageContainer,
+
     // ### Converting from other error types ###
     /// PassPass-thru `bollard::errors::Error`
     #[error("bollard::errors::Error: {0}")]

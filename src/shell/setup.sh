@@ -7,11 +7,14 @@ if [ ! $RTN_CODE = 0 ]; then
   echo $RTN_CODE
   exit $RTN_CODE
 fi
-echo "$SALVAGE_RUN_ONCE"
+
+#Wait to ensure container status is running
+sleep 1
+
 if [ "$SALVAGE_RUN_ONCE" = "true" ]; then
   salvage
 else
-  # Check cron variable
+  # Set default CRON value
   if [ -z "$CRON" ]; then
     CRON="0 0 * * *"
   fi

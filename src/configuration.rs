@@ -2,10 +2,7 @@ use crate::error::Error;
 use crate::error::Error::{
     InvalidBackupType, InvalidCompressionType, InvalidPermission, NoVolumeMounted,
 };
-use crate::{
-    BACKUP_DIR, BACKUP_DIR_ENV, COMPRESS_ENV, DATA_DIR, DATA_DIR_ENV, GROUP_PERMISSION_ENV,
-    OTHER_PERMISSION_ENV, PREFIX_ENV, SALVAGE_STOP_CONTAINERS_ENV, STRATEGY_ENV,
-};
+use crate::{BACKUP_DIR, BACKUP_DIR_ENV, COMPRESS_ENV, DATA_DIR, DATA_DIR_ENV, GROUP_PERMISSION_ENV, LOG_TARGET, OTHER_PERMISSION_ENV, PREFIX_ENV, SALVAGE_IS_DOCKER, SALVAGE_RUN_ONCE_ENV, SALVAGE_STOP_CONTAINERS_ENV, STRATEGY_ENV};
 use log::debug;
 use std::env;
 use std::fmt::{Display, Formatter};
@@ -13,8 +10,6 @@ use std::fs::Permissions;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::str::FromStr;
-
-pub const LOG_TARGET: &str = "salvage";
 
 pub trait DefaultEnv: Default + Display + FromStr<Err = Error> {
     fn env_or_default<S: AsRef<str>>(key: S) -> Result<Self, Error> {
@@ -38,31 +33,39 @@ pub struct Configuration {
     pub group_permission: ArchivePermission,
     pub other_permission: ArchivePermission,
     pub stop_containers: bool,
+    pub is_docker: bool,
+    pub run_once: bool,
 }
 
+#[derive(Default)]
 pub enum ArchiveStrategy {
-    Single,
+    #[default]
     Multiple,
+    Single,
 }
 
+#[derive(Default)]
 pub enum ArchiveCompression {
+    #[default]
     Gzip,
     Xz,
 }
 
+#[derive(Default)]
 pub enum ArchivePermission {
+    #[default]
     Read,
     Write,
     None,
 }
 
-impl DefaultEnv for ArchiveStrategy {}
-
-impl Default for ArchiveStrategy {
-    fn default() -> Self {
-        Self::Multiple
+impl Configuration {
+    pub fn container_management_enabled(&self) -> bool {
+        self.is_docker && self.stop_containers
     }
 }
+
+impl DefaultEnv for ArchiveStrategy {}
 
 impl Display for ArchiveStrategy {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -86,12 +89,6 @@ impl FromStr for ArchiveStrategy {
 }
 
 impl DefaultEnv for ArchiveCompression {}
-
-impl Default for ArchiveCompression {
-    fn default() -> Self {
-        Self::Gzip
-    }
-}
 
 impl Display for ArchiveCompression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -124,11 +121,6 @@ impl ArchiveCompression {
 }
 
 impl DefaultEnv for ArchivePermission {}
-impl Default for ArchivePermission {
-    fn default() -> Self {
-        Self::Read
-    }
-}
 
 impl Display for ArchivePermission {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -181,10 +173,9 @@ pub fn validate_config() -> Result<Configuration, Error> {
     let archive_prefix = env::var(PREFIX_ENV).unwrap_or(LOG_TARGET.to_string());
     let group_permission = ArchivePermission::env_or_default(GROUP_PERMISSION_ENV)?;
     let other_permission = ArchivePermission::env_or_default(OTHER_PERMISSION_ENV)?;
-    let stop_containers = env::var(SALVAGE_STOP_CONTAINERS_ENV)
-        .unwrap_or("true".to_string())
-        .to_ascii_lowercase()
-        .contains("true");
+    let stop_containers = get_env_bool(SALVAGE_STOP_CONTAINERS_ENV, true);
+    let is_docker = get_env_bool(SALVAGE_IS_DOCKER, false);
+    let run_once = get_env_bool(SALVAGE_RUN_ONCE_ENV, false);
 
     if !data_dir.as_path().is_dir() {
         return Err(NoVolumeMounted(data_dir.to_string_lossy().into()));
@@ -201,7 +192,16 @@ pub fn validate_config() -> Result<Configuration, Error> {
         group_permission,
         other_permission,
         stop_containers,
+        is_docker,
+        run_once,
     };
 
     Ok(valid_env)
+}
+
+fn get_env_bool(key: &str, default: bool) -> bool {
+    match env::var(key) {
+        Ok(value) => value.eq_ignore_ascii_case("true"),
+        Err(_) => default,
+    }
 }
