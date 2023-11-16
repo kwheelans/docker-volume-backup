@@ -15,6 +15,7 @@ use std::str::FromStr;
 use time::macros::format_description;
 use time::OffsetDateTime;
 use xz2::write::XzEncoder;
+use zstd::Encoder as ZstdEncoder;
 
 mod configuration;
 mod docker;
@@ -198,6 +199,7 @@ fn select_encoder<P: AsRef<Path>>(
     let encoder: Box<dyn Write> = match compress {
         ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, Compression::default())),
         ArchiveCompression::Xz => Box::new(XzEncoder::new(file, 6)),
+        ArchiveCompression::Zstd => Box::new(ZstdEncoder::new(file, 6)?.auto_finish()),
     };
     Ok(encoder)
 }

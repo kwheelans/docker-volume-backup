@@ -2,16 +2,16 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Error return when conversion to [`BackupStrategy`] fails
-    #[error("Provided value cannot be converted to BackupStrategy enum")]
+    /// Error return when conversion to [`ArchiveStrategy`] fails
+    #[error("Provided value cannot be converted to ArchiveStrategy enum")]
     InvalidBackupType,
 
-    /// Error return when conversion to [`BackupCompression`] fails
-    #[error("Provided value cannot be converted to BackupCompression enum")]
+    /// Error return when conversion to [`ArchiveCompression`] fails
+    #[error("Provided value cannot be converted to ArchiveCompression enum")]
     InvalidCompressionType,
 
-    /// Error return when conversion to [`Permission`] fails
-    #[error("Provided value cannot be converted to Permission enum")]
+    /// Error return when conversion to [`ArchivePermission`] fails
+    #[error("Provided value cannot be converted to ArchivePermission enum")]
     InvalidPermission,
 
     /// Error returned when a required directory does not exit

@@ -49,7 +49,7 @@ volumes:
 |----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | SCHEDULE                         | `0 0 * * *` | Standard cron expression.<br>See https://en.wikipedia.org/wiki/Cron.                                                                    |
 | TZ                               | `UTC`       | Provide TZ identifier to use in the container (ie `America/Phoenix`). See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. |
-| SALVAGE_ARCHIVE_COMPRESSION      | `gzip`      | Compression used on the tarball archive.<br>Valid values `gzip`, `xz`.                                                                  |
+| SALVAGE_ARCHIVE_COMPRESSION      | `gzip`      | Compression used on the tarball archive.<br>Valid values `gzip`, `xz`, `zstd`.                                                          |
 | SALVAGE_ARCHIVE_STRATEGY         | `multiple`  | `multiple` - Compress each directory into is own archive.<br>`single` - Compress all directories into one archive.                      |
 | SALVAGE_ARCHIVE_PREFIX           | `salvage`   | Provide the prefix to be used when creating the backup archives.                                                                        |
 | SALVAGE_ARCHIVE_GROUP_PERMISSION | `read`      | Provide how the group permission should be set for the backup archive.<br>Valid values `read`, `read-write`, `none`.                    |

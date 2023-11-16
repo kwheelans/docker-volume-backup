@@ -49,6 +49,7 @@ pub enum ArchiveCompression {
     #[default]
     Gzip,
     Xz,
+    Zstd,
 }
 
 #[derive(Default)]
@@ -95,6 +96,7 @@ impl Display for ArchiveCompression {
         match self {
             ArchiveCompression::Gzip => write!(f, "GZip"),
             ArchiveCompression::Xz => write!(f, "XZ"),
+            ArchiveCompression::Zstd => write!(f, "ZStd"),
         }
     }
 }
@@ -106,6 +108,7 @@ impl FromStr for ArchiveCompression {
         match s.to_ascii_lowercase().as_str() {
             "gz" | "gzip" => Ok(Self::Gzip),
             "xz" => Ok(Self::Xz),
+            "zstd" | "zst" => Ok(Self::Zstd),
             _ => Err(InvalidCompressionType),
         }
     }
@@ -114,9 +117,10 @@ impl FromStr for ArchiveCompression {
 impl ArchiveCompression {
     pub fn extension(&self) -> String {
         match self {
-            ArchiveCompression::Gzip => "gz".to_string(),
-            ArchiveCompression::Xz => "xz".to_string(),
-        }
+            ArchiveCompression::Gzip => "gz",
+            ArchiveCompression::Xz => "xz",
+            ArchiveCompression::Zstd => "zst",
+        }.to_string()
     }
 }
 
