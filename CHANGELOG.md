@@ -1,3 +1,14 @@
+# v0.6.0
+## Breaking Changes
+- Names of the environment variables have been changed.
+- Default archive directory in the container changed to `/archive`.
+
+## Features
+- Added docker container management to stop and start containers.
+  - Only one salvage container at time is currently supported. Other salvage containers identified will be stopped and removed.
+  - Will identify running containers that container volumes with the same source as the volumes mounted under `/data` in the salvage container.
+  - After archive process completes the previously stopped containers are restarted.
+
 # v0.5.0
 ## Changes
 - update package name

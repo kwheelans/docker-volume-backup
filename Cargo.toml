@@ -1,13 +1,13 @@
 [package]
 name = "salvage"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Kevin Wheelans <kevin.wheelans@proton.me>"]
 edition = "2021"
 rust-version = "1.70"
-description = "Simple volume backup utility for Docker cotnainers"
+description = "A docker container utility to schedule archiving container volumes."
 homepage = "https://github.com/kwheelans/salvage"
 license = "MIT"
-keywords = []
+keywords = ["docker","volume", "docker-volume-backup"]
 readme = "README.md"
 repository = "https://github.com/kwheelans/salvage"
 
