@@ -1,6 +1,8 @@
 # Salvage
 [![License](https://img.shields.io/github/license/kwheelans/salvage?color=blue)](./LICENSE)
 [![latest version](https://img.shields.io/github/v/tag/kwheelans/salvage?label=version)](https://github.com/kwheelans/salvage/releases)
+![Docker Image Size (tag)](https://img.shields.io/docker/image-size/kwheelans/salvage/latest?logo=docker)
+
 
 A docker container utility to schedule archiving container volumes.
 
@@ -25,7 +27,7 @@ docker run -d \
 
 #### Docker Compose
 ```yaml
-version: "3"
+version: "3.8"
 services:
   salvage:
     container_name: salvage
@@ -57,7 +59,7 @@ volumes:
 
 ## Container Registries
 
-| Container Registry        | Image                                                             |   |
-|---------------------------|-------------------------------------------------------------------|---|
-| Docker Hub                | [kwheelans/salvage](https://hub.docker.com/r/kwheelans/salvage)   |   |
-| GitHub Container Registry | [ghcr.io/kwheelans/salvage](https://github.com/kwheelans/salvage) |   |
+| Container Registry        | Image                                                             |
+|---------------------------|-------------------------------------------------------------------|
+| Docker Hub                | [kwheelans/salvage](https://hub.docker.com/r/kwheelans/salvage)   |
+| GitHub Container Registry | [ghcr.io/kwheelans/salvage](https://github.com/kwheelans/salvage) |
