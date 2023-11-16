@@ -36,7 +36,7 @@ const PREFIX_ENV: &str = "SALVAGE_ARCHIVE_PREFIX";
 const COMPRESS_ENV: &str = "SALVAGE_ARCHIVE_COMPRESSION";
 const GROUP_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_GROUP_PERMISSION";
 const OTHER_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_OTHER_PERMISSION";
-const SALVAGE_STOP_CONTAINERS_ENV: &str = "SALVAGE_STOP_CONTAINERS";
+const SALVAGE_CONTAINER_MANAGEMENT_ENV: &str = "SALVAGE_CONTAINER_MANAGEMENT";
 const SALVAGE_RUN_ONCE_ENV: &str = "SALVAGE_RUN_ONCE";
 const SALVAGE_IS_DOCKER: &str = "SALVAGE_IS_DOCKER";
 
@@ -131,7 +131,7 @@ fn archive(config: Configuration) -> Result<(), Error> {
 
     // Start containers that were stopped for archiving.
     if config.container_management_enabled() {
-        runtime.block_on(post_archive_container_processing())?;
+        runtime.block_on(post_archive_container_processing(pre_archive))?;
     }
 
     info!(target: LOG_TARGET, "Archive process finished");

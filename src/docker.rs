@@ -2,15 +2,21 @@ use crate::configuration::Configuration;
 use crate::error::Error;
 use crate::error::Error::NoSalvageContainer;
 use crate::{LOG_TARGET, SALVAGE_LABEL};
-use bollard::container::{ListContainersOptions, RemoveContainerOptions, StopContainerOptions};
+use bollard::container::{ListContainersOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions};
 use bollard::models::ContainerSummary;
 use bollard::Docker;
 use log::{debug, info, trace, warn};
 use std::collections::HashMap;
 use std::string::ToString;
 
-pub async fn post_archive_container_processing() -> Result<(), Error> {
-    //TODO: implement starting containers stopped by pre_archive_container_processing
+pub async fn post_archive_container_processing(container_ids: Option<Vec<String>>) -> Result<(), Error> {
+    let docker = connect_docker()?;
+    match container_ids {
+        None => debug!(target: LOG_TARGET, "No containers to restart"),
+        Some(ids) => start_containers(&docker, ids.as_slice()).await?,
+    }
+
+    info!(target: LOG_TARGET, "Post-archive container processing complete");
     Ok(())
 }
 
@@ -19,7 +25,7 @@ pub async fn post_archive_container_processing() -> Result<(), Error> {
 pub async fn pre_archive_container_processing(
     config: &Configuration,
 ) -> Result<Vec<String>, Error> {
-    let docker = Docker::connect_with_socket_defaults()?;
+    let docker = connect_docker()?;
     let salvage = find_salvage_container(&docker).await?;
     trace!(target: LOG_TARGET ,"Salvage container: {:?}", salvage);
 
@@ -160,4 +166,17 @@ async fn stop_containers<S: AsRef<str>>(docker: &Docker, containers: &[S]) -> Re
             .await?;
     }
     Ok(())
+}
+
+async fn start_containers<S: AsRef<str>>(docker: &Docker, containers: &[S]) -> Result<(), Error> {
+    for container in containers {
+        let start_options = Some(StartContainerOptions::<&str>::default());
+        debug!(target: LOG_TARGET ,"Starting container: {}", container.as_ref());
+        docker.start_container(container.as_ref(), start_options).await?
+    }
+    Ok(())
+}
+
+fn connect_docker() -> Result<Docker, Error> {
+    Ok(Docker::connect_with_socket_defaults()?)
 }

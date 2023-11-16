@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::error::Error::{
     InvalidBackupType, InvalidCompressionType, InvalidPermission, NoVolumeMounted,
 };
-use crate::{BACKUP_DIR, BACKUP_DIR_ENV, COMPRESS_ENV, DATA_DIR, DATA_DIR_ENV, GROUP_PERMISSION_ENV, LOG_TARGET, OTHER_PERMISSION_ENV, PREFIX_ENV, SALVAGE_IS_DOCKER, SALVAGE_RUN_ONCE_ENV, SALVAGE_STOP_CONTAINERS_ENV, STRATEGY_ENV};
+use crate::{BACKUP_DIR, BACKUP_DIR_ENV, COMPRESS_ENV, DATA_DIR, DATA_DIR_ENV, GROUP_PERMISSION_ENV, LOG_TARGET, OTHER_PERMISSION_ENV, PREFIX_ENV, SALVAGE_IS_DOCKER, SALVAGE_RUN_ONCE_ENV, SALVAGE_CONTAINER_MANAGEMENT_ENV, STRATEGY_ENV};
 use log::debug;
 use std::env;
 use std::fmt::{Display, Formatter};
@@ -173,7 +173,7 @@ pub fn validate_config() -> Result<Configuration, Error> {
     let archive_prefix = env::var(PREFIX_ENV).unwrap_or(LOG_TARGET.to_string());
     let group_permission = ArchivePermission::env_or_default(GROUP_PERMISSION_ENV)?;
     let other_permission = ArchivePermission::env_or_default(OTHER_PERMISSION_ENV)?;
-    let stop_containers = get_env_bool(SALVAGE_STOP_CONTAINERS_ENV, true);
+    let stop_containers = get_env_bool(SALVAGE_CONTAINER_MANAGEMENT_ENV, true);
     let is_docker = get_env_bool(SALVAGE_IS_DOCKER, false);
     let run_once = get_env_bool(SALVAGE_RUN_ONCE_ENV, false);
 

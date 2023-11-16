@@ -26,7 +26,7 @@ WORKDIR /salvage
 
 ENV PATH=/salvage:$PATH \
  SALVAGE_IS_DOCKER="true" \
- CRON="0 0 * * *"
+ SCHEDULE="0 0 * * *"
 
 ADD src/shell/*.sh /salvage/
 
