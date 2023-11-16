@@ -23,8 +23,9 @@ mod error;
 const LOG_TARGET: &str = "salvage";
 const TIMESTAMP_FORMAT: &[time::format_description::FormatItem<'_>] =
     format_description!("[year]-[month]-[day]_[hour]-[minute]-[second]");
+
 // Default Paths
-const BACKUP_DIR: &str = "/backup";
+const ARCHIVE_DIR: &str = "/archive";
 const DATA_DIR: &str = "/data";
 
 // Environment Variable Names
@@ -71,8 +72,8 @@ fn run() -> Result<(), Error> {
     let config = validate_config()?;
 
     if args.contains("-v") || args.contains("--validate") {
-        info!(target: LOG_TARGET, "Data Directory: {}", config.data_dir.to_string_lossy());
-        info!(target: LOG_TARGET, "Backup Directory: {}", config.backup_dir.to_string_lossy());
+        info!(target: LOG_TARGET, "Input Data Directory: {}", config.data_dir.to_string_lossy());
+        info!(target: LOG_TARGET, "Archive Directory: {}", config.backup_dir.to_string_lossy());
         info!(target: LOG_TARGET, "Archive Compression: {}", config.archive_compression.to_string());
         info!(target: LOG_TARGET, "Archive Strategy: {}", config.archive_strategy.to_string());
         info!(target: LOG_TARGET, "Archive Prefix: {}", config.archive_prefix.as_str());
