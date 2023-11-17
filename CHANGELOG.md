@@ -1,3 +1,12 @@
+# v0.7.0
+## Features
+- Added Zstandard to valid compression types.
+- Added BZip2 to valid compression types.
+- Added environment variable `SALVAGE_ARCHIVE_COMPRESSION_LEVEL` to control compression level.
+
+## Fixes
+- Fixed some error message text.
+
 # v0.6.0
 ## Breaking Changes
 - Names of the environment variables have been changed.
