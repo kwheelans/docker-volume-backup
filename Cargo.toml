@@ -13,6 +13,7 @@ repository = "https://github.com/kwheelans/salvage"
 
 [dependencies]
 bollard = "0.15"
+bzip2 = "0.4"
 log = "0.4"
 flate2 = "1"
 simple_logger = { version = "4", default-features = false, features = ["timestamps"]}

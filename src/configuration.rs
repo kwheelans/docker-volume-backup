@@ -46,6 +46,7 @@ pub enum ArchiveStrategy {
 
 #[derive(Default)]
 pub enum ArchiveCompression {
+    Bzip2,
     #[default]
     Gzip,
     Xz,
@@ -94,6 +95,7 @@ impl DefaultEnv for ArchiveCompression {}
 impl Display for ArchiveCompression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            ArchiveCompression::Bzip2 => write!(f, "BZip2"),
             ArchiveCompression::Gzip => write!(f, "GZip"),
             ArchiveCompression::Xz => write!(f, "XZ"),
             ArchiveCompression::Zstd => write!(f, "ZStd"),
@@ -106,6 +108,7 @@ impl FromStr for ArchiveCompression {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
+            "bzip2" | "bzip" | "bz2" => Ok(Self::Bzip2),
             "gz" | "gzip" => Ok(Self::Gzip),
             "xz" => Ok(Self::Xz),
             "zstd" | "zst" => Ok(Self::Zstd),
@@ -117,6 +120,7 @@ impl FromStr for ArchiveCompression {
 impl ArchiveCompression {
     pub fn extension(&self) -> String {
         match self {
+            ArchiveCompression::Bzip2 => "bz2",
             ArchiveCompression::Gzip => "gz",
             ArchiveCompression::Xz => "xz",
             ArchiveCompression::Zstd => "zst",

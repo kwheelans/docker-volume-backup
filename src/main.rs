@@ -2,7 +2,6 @@ use crate::configuration::{validate_config, ArchiveCompression, ArchiveStrategy,
 use crate::docker::{post_archive_container_processing, pre_archive_container_processing};
 use crate::error::Error;
 use flate2::write::GzEncoder;
-use flate2::Compression;
 use log::{debug, error, info, LevelFilter};
 use std::collections::HashSet;
 use std::env;
@@ -12,6 +11,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::str::FromStr;
+use bzip2::write::BzEncoder;
 use time::macros::format_description;
 use time::OffsetDateTime;
 use xz2::write::XzEncoder;
@@ -193,11 +193,12 @@ fn multiple_archive(
 
 fn select_encoder<P: AsRef<Path>>(
     path: P,
-    compress: &ArchiveCompression,
+    compression: &ArchiveCompression,
 ) -> Result<Box<dyn Write>, Error> {
     let file = File::create(path.as_ref())?;
-    let encoder: Box<dyn Write> = match compress {
-        ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, Compression::default())),
+    let encoder: Box<dyn Write> = match compression {
+        ArchiveCompression::Bzip2 => Box::new(BzEncoder::new(file, bzip2::Compression::default())),
+        ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, flate2::Compression::default())),
         ArchiveCompression::Xz => Box::new(XzEncoder::new(file, 6)),
         ArchiveCompression::Zstd => Box::new(ZstdEncoder::new(file, 6)?.auto_finish()),
     };
