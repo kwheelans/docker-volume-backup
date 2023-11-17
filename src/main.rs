@@ -12,6 +12,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::str::FromStr;
+use std::time::Instant;
 use time::macros::format_description;
 use time::OffsetDateTime;
 use xz2::write::XzEncoder;
@@ -98,6 +99,7 @@ fn set_logging_level() -> LevelFilter {
 }
 
 fn archive(config: Configuration) -> Result<(), Error> {
+    let start_time = Instant::now();
     info!(target: LOG_TARGET, "Archive process started");
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -138,7 +140,7 @@ fn archive(config: Configuration) -> Result<(), Error> {
         runtime.block_on(post_archive_container_processing(pre_archive))?;
     }
 
-    info!(target: LOG_TARGET, "Archive process finished");
+    info!(target: LOG_TARGET, "Archive process finished after {} milliseconds", start_time.elapsed().as_millis());
     Ok(())
 }
 
@@ -151,6 +153,7 @@ fn single_archive(
     directories: Vec<(OsString, PathBuf)>,
     config: &Configuration,
 ) -> Result<(), Error> {
+    let start_time = Instant::now();
     let timestamp = timestamp()?;
     let archive_name = format!(
         "{}_{}.tar.{}",
@@ -170,6 +173,7 @@ fn single_archive(
         tar.append_dir_all(name, path)?;
     }
     std::fs::set_permissions(archive_path.as_path(), config.archive_permission())?;
+    debug!(target: LOG_TARGET, "Archive {} took {} milliseconds", archive_name, start_time.elapsed().as_millis());
     Ok(())
 }
 
@@ -179,6 +183,7 @@ fn multiple_archive(
 ) -> Result<(), Error> {
     let timestamp = timestamp()?;
     for (name, path) in directories {
+        let start_time = Instant::now();
         let archive_name = format!(
             "{}_{}_{}.tar.{}",
             config.archive_prefix,
@@ -196,6 +201,7 @@ fn multiple_archive(
         tar.append_dir_all(name, path)?;
         tar.finish()?;
         std::fs::set_permissions(archive_path.as_path(), config.archive_permission())?;
+        debug!(target: LOG_TARGET, "Archive {} took {} milliseconds", archive_name, start_time.elapsed().as_millis());
     }
 
     Ok(())

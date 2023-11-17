@@ -10,17 +10,19 @@ use bollard::Docker;
 use log::{debug, info, trace, warn};
 use std::collections::HashMap;
 use std::string::ToString;
+use std::time::Instant;
 
 pub async fn post_archive_container_processing(
     container_ids: Option<Vec<String>>,
 ) -> Result<(), Error> {
+    let start_time = Instant::now();
     let docker = connect_docker()?;
     match container_ids {
         None => debug!(target: LOG_TARGET, "No containers to restart"),
         Some(ids) => start_containers(&docker, ids.as_slice()).await?,
     }
 
-    info!(target: LOG_TARGET, "Post-archive container processing complete");
+    debug!(target: LOG_TARGET, "Post-archive container processing complete after {} milliseconds", start_time.elapsed().as_millis());
     Ok(())
 }
 
@@ -29,6 +31,7 @@ pub async fn post_archive_container_processing(
 pub async fn pre_archive_container_processing(
     config: &Configuration,
 ) -> Result<Vec<String>, Error> {
+    let start_time = Instant::now();
     let docker = connect_docker()?;
     let salvage = find_salvage_container(&docker).await?;
     trace!(target: LOG_TARGET ,"Salvage container: {:?}", salvage);
@@ -51,7 +54,7 @@ pub async fn pre_archive_container_processing(
 
     stop_containers(&docker, containers.as_slice()).await?;
 
-    info!(target: LOG_TARGET, "Pre-archive container processing complete");
+    debug!(target: LOG_TARGET, "Pre-archive container processing complete after {} milliseconds", start_time.elapsed().as_millis());
     Ok(containers)
 }
 

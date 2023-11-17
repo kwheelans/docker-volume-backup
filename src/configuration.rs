@@ -11,6 +11,7 @@ use log::{debug, warn};
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs::Permissions;
+use std::num::IntErrorKind;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -145,7 +146,9 @@ impl ArchiveCompression {
                 }
             }
             Err(error) => {
-                warn!(target: LOG_TARGET, "Using default because compression level conversion to u32 failed: {}", error);
+                if error.kind().ne(&IntErrorKind::Empty) {
+                    warn!(target: LOG_TARGET, "Using default because compression level conversion to u32 failed: {}", error);
+                }
                 self.default_level()
             }
         }

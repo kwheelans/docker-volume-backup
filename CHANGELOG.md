@@ -1,3 +1,11 @@
+# v0.7.1
+## Fixes
+- Suppress warning when `SALVAGE_ARCHIVE_COMPRESSION_LEVEL` is not provided
+- Changed level of some logging messages to match intention
+
+## Minor Changes
+- Added duration timers for logging
+
 # v0.7.0
 ## Features
 - Added Zstandard to valid compression types.
