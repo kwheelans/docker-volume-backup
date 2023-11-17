@@ -2,14 +2,18 @@ use crate::configuration::Configuration;
 use crate::error::Error;
 use crate::error::Error::NoSalvageContainer;
 use crate::{LOG_TARGET, SALVAGE_LABEL};
-use bollard::container::{ListContainersOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions};
+use bollard::container::{
+    ListContainersOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions,
+};
 use bollard::models::ContainerSummary;
 use bollard::Docker;
 use log::{debug, info, trace, warn};
 use std::collections::HashMap;
 use std::string::ToString;
 
-pub async fn post_archive_container_processing(container_ids: Option<Vec<String>>) -> Result<(), Error> {
+pub async fn post_archive_container_processing(
+    container_ids: Option<Vec<String>>,
+) -> Result<(), Error> {
     let docker = connect_docker()?;
     match container_ids {
         None => debug!(target: LOG_TARGET, "No containers to restart"),
@@ -172,7 +176,9 @@ async fn start_containers<S: AsRef<str>>(docker: &Docker, containers: &[S]) -> R
     for container in containers {
         let start_options = Some(StartContainerOptions::<&str>::default());
         debug!(target: LOG_TARGET ,"Starting container: {}", container.as_ref());
-        docker.start_container(container.as_ref(), start_options).await?
+        docker
+            .start_container(container.as_ref(), start_options)
+            .await?
     }
     Ok(())
 }

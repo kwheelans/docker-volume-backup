@@ -1,6 +1,7 @@
 use crate::configuration::{validate_config, ArchiveCompression, ArchiveStrategy, Configuration};
 use crate::docker::{post_archive_container_processing, pre_archive_container_processing};
 use crate::error::Error;
+use bzip2::write::BzEncoder;
 use flate2::write::GzEncoder;
 use log::{debug, error, info, LevelFilter};
 use std::collections::HashSet;
@@ -11,7 +12,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::str::FromStr;
-use bzip2::write::BzEncoder;
 use time::macros::format_description;
 use time::OffsetDateTime;
 use xz2::write::XzEncoder;
@@ -35,7 +35,8 @@ const DATA_DIR_ENV: &str = "SALVAGE_DATA_DIR";
 const LOG_LEVEL: &str = "SALVAGE_LOG_LEVEL";
 const STRATEGY_ENV: &str = "SALVAGE_ARCHIVE_STRATEGY";
 const PREFIX_ENV: &str = "SALVAGE_ARCHIVE_PREFIX";
-const COMPRESS_ENV: &str = "SALVAGE_ARCHIVE_COMPRESSION";
+const COMPRESSION_ENV: &str = "SALVAGE_ARCHIVE_COMPRESSION";
+const COMPRESSION_LEVEL_ENV: &str = "SALVAGE_ARCHIVE_COMPRESSION_LEVEL";
 const GROUP_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_GROUP_PERMISSION";
 const OTHER_PERMISSION_ENV: &str = "SALVAGE_ARCHIVE_OTHER_PERMISSION";
 const SALVAGE_CONTAINER_MANAGEMENT_ENV: &str = "SALVAGE_CONTAINER_MANAGEMENT";
@@ -76,13 +77,14 @@ fn run() -> Result<(), Error> {
         info!(target: LOG_TARGET, "Input Data Directory: {}", config.data_dir.to_string_lossy());
         info!(target: LOG_TARGET, "Archive Directory: {}", config.backup_dir.to_string_lossy());
         info!(target: LOG_TARGET, "Archive Compression: {}", config.archive_compression.to_string());
+        info!(target: LOG_TARGET, "Archive Compression Level: {}", config.archive_compression_level);
         info!(target: LOG_TARGET, "Archive Strategy: {}", config.archive_strategy.to_string());
         info!(target: LOG_TARGET, "Archive Prefix: {}", config.archive_prefix.as_str());
-        info!(target: LOG_TARGET, "Archive Compression: {}", config.group_permission.to_string());
-        info!(target: LOG_TARGET, "Archive Compression: {}", config.other_permission.to_string());
-        info!(target: LOG_TARGET, "Container Management Flag: {}", config.stop_containers.to_string());
-        info!(target: LOG_TARGET, "Is Docker: {}", config.is_docker.to_string());
-        info!(target: LOG_TARGET, "Run Once: {}", config.run_once.to_string());
+        info!(target: LOG_TARGET, "Archive Group Permission: {}", config.group_permission.to_string());
+        info!(target: LOG_TARGET, "Archive Other Permission: {}", config.other_permission.to_string());
+        info!(target: LOG_TARGET, "Container Management Flag: {}", config.stop_containers);
+        info!(target: LOG_TARGET, "Is Docker: {}", config.is_docker);
+        info!(target: LOG_TARGET, "Run Once: {}", config.run_once);
         info!(target: LOG_TARGET, "Configuration validated successfully.");
     } else {
         archive(config)?;
@@ -157,7 +159,11 @@ fn single_archive(
         config.archive_compression.extension()
     );
     let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
-    let compressor = select_encoder(archive_path.as_path(), &config.archive_compression)?;
+    let compressor = select_encoder(
+        archive_path.as_path(),
+        &config.archive_compression,
+        config.archive_compression_level,
+    )?;
     let mut tar = tar::Builder::new(compressor);
 
     for (name, path) in directories {
@@ -181,7 +187,11 @@ fn multiple_archive(
             config.archive_compression.extension()
         );
         let archive_path = config.backup_dir.as_path().join(archive_name.as_str());
-        let compressor = select_encoder(archive_path.as_path(), &config.archive_compression)?;
+        let compressor = select_encoder(
+            archive_path.as_path(),
+            &config.archive_compression,
+            config.archive_compression_level,
+        )?;
         let mut tar = tar::Builder::new(compressor);
         tar.append_dir_all(name, path)?;
         tar.finish()?;
@@ -194,13 +204,14 @@ fn multiple_archive(
 fn select_encoder<P: AsRef<Path>>(
     path: P,
     compression: &ArchiveCompression,
+    level: u32,
 ) -> Result<Box<dyn Write>, Error> {
     let file = File::create(path.as_ref())?;
     let encoder: Box<dyn Write> = match compression {
-        ArchiveCompression::Bzip2 => Box::new(BzEncoder::new(file, bzip2::Compression::default())),
-        ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, flate2::Compression::default())),
-        ArchiveCompression::Xz => Box::new(XzEncoder::new(file, 6)),
-        ArchiveCompression::Zstd => Box::new(ZstdEncoder::new(file, 6)?.auto_finish()),
+        ArchiveCompression::Bzip2 => Box::new(BzEncoder::new(file, bzip2::Compression::new(level))),
+        ArchiveCompression::Gzip => Box::new(GzEncoder::new(file, flate2::Compression::new(level))),
+        ArchiveCompression::Xz => Box::new(XzEncoder::new(file, level)),
+        ArchiveCompression::Zstd => Box::new(ZstdEncoder::new(file, level as i32)?.auto_finish()),
     };
     Ok(encoder)
 }
