@@ -6,6 +6,9 @@ on:
     branches: ['main']
     tags: [v*]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 env:
   GH_REGISTRY: ghcr.io
   GH_IMAGE: ${{ github.repository }}
