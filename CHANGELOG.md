@@ -1,3 +1,7 @@
+# v0.7.2
+## Changes
+- bump dependencies
+
 # v0.7.1
 ## Fixes
 - Suppress warning when `SALVAGE_ARCHIVE_COMPRESSION_LEVEL` is not provided
